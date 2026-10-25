@@ -1,0 +1,58 @@
+
+name: Build and deploy Wiyasire Marketing
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download repository files
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Extract website ZIP
+        run: unzip -q wiyasire-marketing-formspree-connected.zip
+
+      - name: Install dependencies and build
+        working-directory: wiyasire-marketing
+        run: |
+          npm install
+          npm run build -- --base=/wiyasire-marketing/
+
+      - name: Prepare GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload built website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: wiyasire-marketing/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v4
